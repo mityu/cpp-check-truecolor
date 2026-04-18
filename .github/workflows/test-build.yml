@@ -42,6 +42,11 @@ jobs:
             clang++ --version
           fi
       - run: make
+      - uses: denoland/setup-deno@v2
+      - name: Run tests
+        run: |
+          deno --version
+          make test
 
   build-test-with-nix:
     name: On ${{ matrix.os }} with Nix
@@ -57,3 +62,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
       - run: nix build .
+      - uses: denoland/setup-deno@v2
+      - name: Run tests
+        run: |
+          deno --version
+          CHECK_TRUECOLOR_EXECUTABLE="$(pwd)/result/bin/check-truecolor" make test

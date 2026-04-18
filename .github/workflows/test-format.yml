@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Setup homebrew
         uses: Homebrew/actions/setup-homebrew@master
       - name: Prepare newer clang-format
@@ -25,3 +27,14 @@ jobs:
       - name: Check code format
         run: |
           clang-format --dry-run --Werror *.cpp
+
+  deno-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: denoland/setup-deno@v2
+      - run: deno --version
+      - run: deno fmt --check test/*.ts

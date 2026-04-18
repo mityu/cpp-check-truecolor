@@ -35,3 +35,17 @@ or
 ```sh
 nix run github:mityu#cpp-check-truecolor
 ```
+
+## Run tests
+
+Additionaly, Deno is required to run tests: https://github.com/denoland/deno
+
+```sh
+make test
+```
+
+or to test binary built by `nix build .`
+
+```sh
+CHECK_TRUECOLOR_EXECUTABLE=./result/bin/check-truecolor make test
+```
