@@ -166,7 +166,6 @@ constexpr std::string DECRQSS::buildQuery() const {
 void DECRQSS::parseResponse(std::string_view s) {
     constexpr std::string_view prefix = "1$r";
     constexpr std::string_view suffix = "m";
-    std::cerr << s << std::endl;
     if (!(s.starts_with(prefix) && s.ends_with(suffix))) {
         return;
     }
