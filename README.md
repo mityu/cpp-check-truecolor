@@ -10,6 +10,8 @@ If your terminal supports truecolor, this program exits with 0, otherwise exits 
 
 ## Build and run
 
+### Basic way
+
 ```sh
 make
 ./check-truecolor
@@ -19,4 +21,17 @@ or
 
 ```sh
 make run
+```
+
+### For Nix users
+
+```sh
+nix build .
+./result/bin/check-truecolor
+```
+
+or
+
+```sh
+nix run github:mityu#cpp-check-truecolor
 ```
