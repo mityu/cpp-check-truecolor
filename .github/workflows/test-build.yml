@@ -1,0 +1,44 @@
+name: Build test
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - "*.md"
+      - LICENSE
+      - compile_flags.txt
+      - .clang-format
+      - .gitignore
+  pull_request:
+    paths-ignore:
+      - "*.md"
+      - LICENSE
+      - compile_flags.txt
+      - .clang-format
+      - .gitignore
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: On ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Show environment
+        run: |
+          uname -a
+          if type g++ > /dev/null; then
+            g++ --version
+          fi
+          if type clang++ > /dev/null; then
+            clang++ --version
+          fi
+      - run: make
