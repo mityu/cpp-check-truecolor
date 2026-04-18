@@ -1,6 +1,9 @@
 #include <charconv>
 #include <functional>
 #include <iostream>
+#include <optional>
+#include <span>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -13,6 +16,27 @@
 constexpr static std::string toHex(const std::string_view s);
 constexpr static std::string fromHex(const std::string_view s);
 void printResponse(const std::string_view s);
+
+class Options {
+public:
+    struct List {
+        int timeout = 300;
+        int teardownTimeout = 30;
+        bool help = false;
+        std::string_view programName;
+    };
+    std::optional<std::string> parse(std::span<const std::string_view> args);
+    const List& values() const noexcept;
+    operator const List&() const noexcept;
+
+public:
+    static Options& get();
+    static const List& getDefault();
+    static void showHelp();
+
+private:
+    List values_;
+};
 
 class ProtocolBase {
 public:
@@ -158,6 +182,8 @@ constexpr std::string DECRQSS::buildQuery() const {
     std::string setbg;
     std::string query;
 
+    // TODO: Construct `setbg` using std::format() when it come to be constexpr and many
+    // compiler supports it.
     setbg = setbg + "\e[48;2;" + color.r + ';' + color.g + ';' + color.b + 'm';
     query = query + reset + setbg + decrqss + reset;
     return query;
@@ -239,10 +265,10 @@ bool DECRQSS::doesSupportTruecolor() const {
 
 bool TruecolorChecker::check() const {
     constexpr size_t ReadBufSize = 50;
-    constexpr int timeout = 300;
     constexpr std::string_view DCS = "\eP";
     constexpr std::string_view ST = "\e\\";
 
+    const auto timeout = Options::get().values().timeout;
     struct pollfd pfd = {STDIN_FILENO, POLLIN, 0};
     char readbuf[ReadBufSize] = {};
     std::string buffer{""};
@@ -292,10 +318,114 @@ bool TruecolorChecker::check() const {
 
 TruecolorChecker::~TruecolorChecker() noexcept {
     constexpr size_t BufSize = 30;
+    const auto timeout = Options::get().values().teardownTimeout;
     struct pollfd pfd = {STDIN_FILENO, POLLIN, 0};
     char buf[BufSize] = {};
-    while (poll(&pfd, 1, 30) > 0 && read(STDIN_FILENO, buf, BufSize) > 0)
+    while (poll(&pfd, 1, timeout) > 0 && read(STDIN_FILENO, buf, BufSize) > 0)
         ;
+}
+
+Options& Options::get() {
+    static Options options;
+    return options;
+}
+
+const Options::List& Options::getDefault() {
+    static List values;
+    return values;
+}
+
+void Options::showHelp() {
+    const auto values = Options::get().values();
+    const auto defaultValues = Options::getDefault();
+    std::cout
+        << "Usage: " << values.programName << " [<options> ...]\n"
+        << '\n'
+        << "<options>:\n"
+        << "  -h|--help\n"
+        << "      Show this help\n"
+        << "  --timeout <ms>\n"
+        << "      Timeout for waiting response from terminal.\n"
+        << "      Default is " << defaultValues.timeout << "(ms).\n"
+        << "      You can set smaller value to finish truecolor detection in shorter\n"
+        << "      time but it increases the risk that this program misses to recieve\n"
+        << "      response from terminal and fails to detect truecolor support even if\n"
+        << "      your terminal actually supports it.  You shouln't set too small value\n"
+        << "      when response from terminal can late e.g. when logged into some server\n"
+        << "      over SSH.\n"
+        << "      This program exists immediately when it finds that your terminal has\n"
+        << "      support for truecolor.  Therefore setting bigger value to this shouldn't\n"
+        << "      problematic when your terminal supports truecolor; bigger value will\n"
+        << "      problematic when your terminal lacks truecolor support.  In that case,\n"
+        << "      this program may wait for responses from terminal forever until timeout\n"
+        << "      and you will have to wait for a bit long time.\n"
+        << "  --teardown-timeout <ms>\n"
+        << "      Timeout for waiting remaining response from terminal.\n"
+        << "      Default is " << defaultValues.teardownTimeout << "(ms).\n"
+        << "      After this timeout, responses from terminal will appear on screen.\n"
+        << "      You can set smaller value but it increases the risk that weird string\n"
+        << "      appear on screen.  Or when you can set bigger value, it reduces the\n"
+        << "      risk that weird text floods on screen but it takes much longer time\n"
+        << "      from this program to exit.\n"
+        << std::endl;
+}
+
+std::optional<std::string> Options::parse(std::span<const std::string_view> args) {
+    constexpr std::string_view errprefix = "\e[1m\e[31merror:\e[0m ";
+    std::stringstream err;
+    auto iter = args.begin();
+    values_.programName = *iter++;
+    for (; iter != args.end(); ++iter) {
+        if (*iter == "--help") {
+            values_.help = true;
+        } else if (*iter == "--timeout" || *iter == "--teardown-timeout") {
+            const auto flag = *iter;
+            if (++iter == args.end()) {
+                err << errprefix << "No argument after '" << flag << "' flag.\n";
+                break;
+            }
+
+            int value = 0;
+            const auto [ptr, ec] = std::from_chars(iter->cbegin(), iter->cend(), value);
+            if (ec == std::errc{}) {
+                if (ptr != iter->cend()) {
+                    constexpr std::string_view premsg = "Invalid character in number: ";
+                    std::string indent(premsg.size() + (ptr - iter->cbegin()), ' ');
+                    err << errprefix << "Invalid argument after '" << flag << "' flag.\n"
+                        << premsg << *iter << '\n'
+                        << indent << '^' << '\n';
+                }
+            } else if (ec == std::errc::invalid_argument) {
+                err << errprefix << "Invalid argument after '" << flag << "' flag.\n"
+                    << "A number in milliseconds is required: " << *iter << '\n';
+            } else if (ec == std::errc::result_out_of_range) {
+                err << errprefix << "Invalid argument after '" << flag << "' flag.\n"
+                    << "Given number overflows int: " << *iter << '\n';
+            }
+
+            if (flag == "--timeout") {
+                values_.timeout = value;
+            } else {
+                values_.teardownTimeout = value;
+            }
+        } else {
+            std::stringstream ss;
+            err << errprefix << "Unknown argument: " << *iter << '\n';
+        }
+    }
+
+    if (auto s = err.str(); !s.empty()) {
+        return s.erase(s.find_last_not_of(" \t\n") + 1);
+    }
+    return std::nullopt;
+}
+
+const Options::List& Options::values() const noexcept {
+    return values_;
+}
+
+Options::operator const List&() const noexcept {
+    return values();
 }
 
 void printResponse(const std::string_view s) {
@@ -319,7 +449,15 @@ T runInRawMode(std::function<T()> f) {
 }
 
 int main(int argv, char *argc[]) {
-    // const std::vector<std::string_view> args(argc, argc + argv);
+    const std::vector<std::string_view> args(argc, argc + argv);
+    if (const auto err = Options::get().parse(args); err) {
+        std::cerr << *err << std::endl;
+        return -1;
+    }
+    if (Options::get().values().help) {
+        Options::showHelp();
+        return 0;
+    }
 
     return runInRawMode<int>([]() {
         TruecolorChecker checker;
