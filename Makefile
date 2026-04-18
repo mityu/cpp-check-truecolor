@@ -1,5 +1,15 @@
-check-truecolor: main.cpp
-	$(CXX) -std=c++20 -O2 -o $@ $^
+EXE := check-truecolor
+CXXFLAGS := -std=c++20 -O2
 
-run: check-truecolor
-	./check-truecolor
+ifneq ($(shell uname),Darwin)
+CXXFLAGS += -static
+endif
+
+$(EXE): main.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+run: $(EXE)
+	./$(EXE)
+
+clean:
+	$(RM) $(EXE)

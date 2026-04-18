@@ -27,16 +27,18 @@
         {
           pkgs,
           lib,
+          system,
           ...
         }:
+        let
+          isDarwin = (lib.systems.elaborate system).isDarwin;
+          nativeBuildInputs = lib.optional (!isDarwin) pkgs.glibc.static;
+        in
         {
-          devshells = {
-            default = {
-              packages = with pkgs; [
-                clang
-              ];
-              commands = [ ];
-            };
+          devShells.default = pkgs.mkShellNoCC {
+            inherit nativeBuildInputs;
+            packages = [ pkgs.clang ];
+            commands = [ ];
           };
           packages.default =
             let
@@ -52,6 +54,8 @@
                     else
                       throw "Failed to build version string.";
                   src = ./.;
+
+                  inherit nativeBuildInputs;
 
                   installPhase = ''
                     runHook preInstall
