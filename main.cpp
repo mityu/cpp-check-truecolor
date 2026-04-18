@@ -294,7 +294,7 @@ TruecolorChecker::~TruecolorChecker() noexcept {
     constexpr size_t BufSize = 30;
     struct pollfd pfd = {STDIN_FILENO, POLLIN, 0};
     char buf[BufSize] = {};
-    while (poll(&pfd, 1, 15) > 0 && read(STDIN_FILENO, buf, BufSize) > 0)
+    while (poll(&pfd, 1, 30) > 0 && read(STDIN_FILENO, buf, BufSize) > 0)
         ;
 }
 
