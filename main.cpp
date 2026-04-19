@@ -15,7 +15,7 @@
 
 constexpr static std::string toHex(const std::string_view s);
 constexpr static std::string fromHex(const std::string_view s);
-void printResponse(const std::string_view s);
+void printResponse(const std::string_view s, std::ostream& os = std::cout);
 
 class Options {
 public:
@@ -289,27 +289,29 @@ bool TruecolorChecker::check() const {
             break;
         }
         buffer += std::string_view(readbuf, readbytes);
-        // printResponse(buffer);
-        if (!buffer.starts_with(DCS)) {
-            const auto p = buffer.find(DCS);
-            if (p != std::string::npos) {
-                buffer.erase(0, p);
+
+        while (!buffer.empty()) {
+            if (!buffer.starts_with(DCS)) {
+                const auto p = buffer.find(DCS);
+                if (p != std::string::npos) {
+                    buffer.erase(0, p);
+                }
             }
-        }
 
-        const auto p = buffer.find(ST);
-        if (p == std::string::npos) {
-            continue;
-        }
-        const std::string response = buffer.substr(0 + DCS.size(), p - ST.size());
-        buffer.erase(0, p);
+            const auto p = buffer.find(ST);
+            if (p == std::string::npos) {
+                break;
+            }
+            const std::string response = buffer.substr(0 + DCS.size(), p - DCS.size());
+            buffer.erase(0, p + ST.size());
 
-        for (auto& protocol : protocols) {
-            std::visit([&response](auto& v) { v.parseResponse(response); }, protocol);
-            const auto supportTruecolor =
-                std::visit([](const auto& v) { return v.doesSupportTruecolor(); }, protocol);
-            if (supportTruecolor) {
-                return true;
+            for (auto& protocol : protocols) {
+                std::visit([&response](auto& v) { v.parseResponse(response); }, protocol);
+                const auto supportTruecolor = std::visit(
+                    [](const auto& v) { return v.doesSupportTruecolor(); }, protocol);
+                if (supportTruecolor) {
+                    return true;
+                }
             }
         }
     }
@@ -428,18 +430,18 @@ Options::operator const List&() const noexcept {
     return values();
 }
 
-void printResponse(const std::string_view s) {
+void printResponse(const std::string_view s, std::ostream& os) {
     for (const auto& c : s) {
         switch (c) {
         case '\033':
-            std::cout << "\\e";
+            os << "\\e";
             break;
         default:
-            std::cout << c;
+            os << c;
             break;
         }
     }
-    std::cout << std::endl;
+    os << std::endl;
 }
 
 template <typename T>
