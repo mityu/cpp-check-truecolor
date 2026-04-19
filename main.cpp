@@ -323,8 +323,12 @@ TruecolorChecker::~TruecolorChecker() noexcept {
     const auto timeout = Options::get().values().teardownTimeout;
     struct pollfd pfd = {STDIN_FILENO, POLLIN, 0};
     char buf[BufSize] = {};
-    while (poll(&pfd, 1, timeout) > 0 && read(STDIN_FILENO, buf, BufSize) > 0)
-        ;
+
+    while (poll(&pfd, 1, timeout) > 0) {
+        if (read(STDIN_FILENO, buf, BufSize) <= 0) {
+            break;
+        }
+    }
 }
 
 Options& Options::get() {
