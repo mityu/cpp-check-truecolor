@@ -37,7 +37,10 @@
         {
           devShells.default = pkgs.mkShellNoCC {
             inherit nativeBuildInputs;
-            packages = [ pkgs.clang ];
+            packages = with pkgs; [
+              clang
+              deno
+            ];
             commands = [ ];
           };
           packages.default =
