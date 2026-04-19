@@ -5,7 +5,7 @@ If your terminal supports truecolor, this program exits with 0, otherwise exits 
 
 ## Sample Use Case
 
-- Automatic detection on SSH login.
+- Automatic truecolor detection on SSH login.
 
 ```sh
 # Write this in your .bash_profile
