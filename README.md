@@ -3,12 +3,26 @@
 This is a small program to check if your terminal supports truecolor or not using some terminal sequence such as XTGETTCAP and DECRQSS SGR.
 If your terminal supports truecolor, this program exits with 0, otherwise exits with 1.
 
-## Requirement
+## Sample Use Case
+
+- Automatic detection on SSH login.
+
+```sh
+# Write this in your .bash_profile
+
+if [[ -n "${SSH_TTY:-}" ]] && [[ -z "${COLORTERM:-}" ]] && \
+    type check-truecolor > /dev/null && check-truecolor
+then
+    export COLORTERM=truecolor
+fi
+```
+
+## Build Requirement
 
 - C++ compiler that supports C++20.
 - Some POSIX headers.
 
-## Build and run
+## Build and Run
 
 ### Basic way
 
@@ -36,7 +50,7 @@ or
 nix run github:mityu#cpp-check-truecolor
 ```
 
-## Run tests
+## Run Tests
 
 Additionaly, Deno is required to run tests: https://github.com/denoland/deno
 
