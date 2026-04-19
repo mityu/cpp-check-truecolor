@@ -8,6 +8,9 @@ on:
     paths:
       - "*.cpp"
 
+permissions:
+  contents: read
+
 jobs:
   clang-format:
     runs-on: ubuntu-latest
