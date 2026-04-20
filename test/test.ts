@@ -275,6 +275,7 @@ Deno.test("Error for erroneous command-line argument", async (t) => {
   await t.step("Unknown argument", async () => {
     const out = await run(["--hogehoge"]);
     assertNotUndefined(out);
+    assertEquals(out.code, 255);
     assertMatch(decode(out.stderr), /Unknown argument: --hogehoge/);
   });
 
@@ -282,11 +283,13 @@ Deno.test("Error for erroneous command-line argument", async (t) => {
     await t.step("--timeout", async () => {
       const out = await run(["--timeout"]);
       assertNotUndefined(out);
+      assertEquals(out.code, 255);
       assertMatch(decode(out.stderr), /No argument after '--timeout'/);
     });
     await t.step("--teardown-timeout", async () => {
       const out = await run(["--teardown-timeout"]);
       assertNotUndefined(out);
+      assertEquals(out.code, 255);
       assertMatch(decode(out.stderr), /No argument after '--teardown-timeout'/);
     });
   });
@@ -295,12 +298,14 @@ Deno.test("Error for erroneous command-line argument", async (t) => {
     await t.step("Non number", async () => {
       const out = await run(["--timeout", "hoge"]);
       assertNotUndefined(out);
+      assertEquals(out.code, 255);
       assertMatch(decode(out.stderr), /Invalid argument after '--timeout'/);
     });
 
     await t.step("Partially number", async () => {
       const out = await run(["--timeout", "100x"]);
       assertNotUndefined(out);
+      assertEquals(out.code, 255);
       assertMatch(decode(out.stderr), /Invalid argument after '--timeout'/);
     });
   });
