@@ -5,7 +5,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      dependencies:
+        patterns: ['*']
   - package-ecosystem: nix
     directory: /
     schedule:
       interval: monthly
+    groups:
+      dependencies:
+        patterns: ['*']
